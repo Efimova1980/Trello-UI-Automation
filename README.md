@@ -1,5 +1,10 @@
 # QA_50_32_Trello_Project
 
+
+https://github.com/user-attachments/assets/d25fea71-5fee-4b9c-a397-0787e1be90f4
+
+
+
 A demo UI test automation project for [Trello](https://trello.com), built with Java and Selenium WebDriver using the Page Object pattern.
 
 ## Stack
