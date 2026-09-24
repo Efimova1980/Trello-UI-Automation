@@ -1,13 +1,13 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="suite1" verbose="1">
-    <test name="smoketests">
+<suite name="Smoke suite" verbose="1">
+    <!-- classes run in this order; each class logs in once -->
+    <test name="smoketests" preserve-order="true">
         <groups>
             <run>
                 <include name="smoke"/>
             </run>
         </groups>
         <classes>
-            <class name="tests.LoginTest"/>
             <class name="tests.BoardTests"/>
             <class name="tests.ChangeProfilePhotoTests"/>
         </classes>

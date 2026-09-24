@@ -1,7 +1,10 @@
 package tests;
 
 import manager.AppManager;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
@@ -9,18 +12,25 @@ import pages.AtlassianProfilePage;
 import pages.BoardsPage;
 import utils.TestNGListener;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Duration;
+import java.util.Set;
 
 @Listeners(TestNGListener.class)
 
 public class ChangeProfilePhotoTests extends AppManager {
-    BoardsPage boardsPage;
 
-    @BeforeMethod(alwaysRun = true)
-    public void loginBeforeTest(){
+    private BoardsPage boardsPage;
+
+    // one login per class (the browser stays open between tests)
+    @BeforeClass(alwaysRun = true)
+    public void loginOnce(){
         loginTrello();
-        boardsPage = new BoardsPage(getDriver());
+    }
+
+    // closes the Atlassian tab left by the previous test and returns to Trello
+    @BeforeMethod(alwaysRun = true)
+    public void goToTrello(){
+        boardsPage = openTrello();
     }
 
     @Test(groups = "smoke")
@@ -37,10 +47,17 @@ public class ChangeProfilePhotoTests extends AppManager {
                 .validateWrongFormatFileMessage("Upload a photo or select from some default options"));
     }
 
+    // "Manage account" opens a new tab: wait for it and switch to the tab that wasn't there before
     private AtlassianProfilePage changeProfilePhoto(String photoPath){
+        Set<String> tabsBefore = getDriver().getWindowHandles();
         boardsPage.openMyAccount();
-        List<String> tabs = new ArrayList<>(getDriver().getWindowHandles());
-        getDriver().switchTo().window(tabs.get(1));
+        new WebDriverWait(getDriver(), Duration.ofSeconds(10))
+                .until(ExpectedConditions.numberOfWindowsToBe(tabsBefore.size() + 1));
+        for (String tab : getDriver().getWindowHandles()) {
+            if (!tabsBefore.contains(tab)) {
+                getDriver().switchTo().window(tab);
+            }
+        }
         AtlassianProfilePage atlassianProfilePage = new AtlassianProfilePage(getDriver());
         atlassianProfilePage.changeMyProfilePhoto(photoPath);
         return atlassianProfilePage;

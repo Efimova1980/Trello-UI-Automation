@@ -9,25 +9,24 @@ import org.openqa.selenium.support.events.EventFiringDecorator;
 import org.openqa.selenium.support.events.WebDriverListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import pages.BoardsPage;
 import pages.HomePage;
 import utils.WDListener;
 
-import java.lang.reflect.Method;
 import java.time.Duration;
 
 public class AppManager {
-    public Logger logger = LoggerFactory
-            .getLogger(AppManager.class);
+    protected Logger logger = LoggerFactory.getLogger(AppManager.class);
 
     @Getter
     private WebDriver driver;
+    private String mainTab;
 
-    public AppManager(){}
-
-    @BeforeMethod(alwaysRun = true)
-    public void setup(Method method){
+    // one browser per test class: lets logged-in tests share a single login
+    @BeforeClass(alwaysRun = true)
+    public void setup() {
         ChromeOptions chromeOptions = new ChromeOptions();
         chromeOptions.addArguments("--lang=en");
         driver = new ChromeDriver(chromeOptions);
@@ -35,22 +34,39 @@ public class AppManager {
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
 
         WebDriverListener webDriverListener = new WDListener();
-        driver = new EventFiringDecorator<>(webDriverListener)
-                .decorate(driver);
+        driver = new EventFiringDecorator<>(webDriverListener).decorate(driver);
 
-        logger.info("start testing with method --> {}", method.getName());
+        mainTab = driver.getWindowHandle();
+        logger.info("start testing class --> {}", getClass().getSimpleName());
     }
 
-    public void loginTrello(){
+    public void loginTrello() {
         new HomePage(getDriver())
                 .clickBtnLogin()
                 .login(User.getValidUser());
     }
 
-    @AfterMethod(alwaysRun = true, enabled = true)
-    public void tearDown(Method method){
-        if (driver != null)
+    // brings every test to the same starting point: the boards page in the main tab
+    public BoardsPage openTrello() {
+        closeExtraTabs();
+        driver.get("https://trello.com/");
+        return new BoardsPage(driver);
+    }
+
+    private void closeExtraTabs() {
+        for (String tab : driver.getWindowHandles()) {
+            if (!tab.equals(mainTab)) {
+                driver.switchTo().window(tab).close();
+            }
+        }
+        driver.switchTo().window(mainTab);
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void tearDown() {
+        if (driver != null) {
             driver.quit();
-        logger.info("stop testing with method --> {}", method.getName());
+        }
+        logger.info("stop testing class --> {}", getClass().getSimpleName());
     }
 }

@@ -8,10 +8,18 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
 public class BasePage {
+
+    private static final Logger logger = LoggerFactory.getLogger(BasePage.class);
+
+    // max time PageFactory keeps looking for an element before it fails
+    protected static final int ELEMENT_TIMEOUT_SECONDS = 10;
+
     static WebDriver driver;
     public static void setDriver(WebDriver wd){
         driver = wd;
@@ -39,14 +47,6 @@ public class BasePage {
         }
     }
 
-    public void pause(int time){
-        try {
-            Thread.sleep(time * 1000L);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
     public boolean validateURL(String fraction){
         try {
             return new WebDriverWait(driver, Duration.ofSeconds(10))
@@ -61,15 +61,16 @@ public class BasePage {
             return new WebDriverWait(driver, Duration.ofSeconds(time))
                     .until(ExpectedConditions.textToBePresentInElement(element, text));
         }catch (NoSuchElementException| TimeoutException exception){
-            System.out.println("create exception" + exception.getMessage());
+            logger.warn("Text '{}' did not appear within {}s", text, time);
             return false;
         }
     }
 
     public boolean validateElementVisible(WebElement element, int time){
         try {
-            return new WebDriverWait(driver, Duration.ofSeconds(time))
-                    .until(ExpectedConditions.visibilityOf(element)) != null;
+            new WebDriverWait(driver, Duration.ofSeconds(time))
+                    .until(ExpectedConditions.visibilityOf(element));
+            return true;
         } catch (NoSuchElementException | TimeoutException exception){
             return false;
         }

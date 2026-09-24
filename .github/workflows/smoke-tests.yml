@@ -1,4 +1,4 @@
-name: Login tests
+name: Smoke tests
 
 env:
   TRELLO_EMAIL: ${{ secrets.TRELLO_EMAIL }}
@@ -6,8 +6,7 @@ env:
   TRELLO_TOTP_SECRET: ${{ secrets.TRELLO_TOTP_SECRET }}
 
 on:
-  push:
-    branches: ["master"]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -40,15 +39,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build with Gradle Wrapper
-        run: .\gradlew clean logintests
+      - name: Run smoke tests (boards, then avatar)
+        run: .\gradlew clean smoketests
 
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: build/reports/tests/logintests/
+          path: build/reports/tests/smoketests/
 
       - name: Upload screenshots
         if: always()

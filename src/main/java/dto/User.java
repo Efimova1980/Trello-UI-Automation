@@ -35,7 +35,7 @@ public class User {
         return user;
     }
 
-    public static User getUserWithWrongTopSecret(){
+    public static User getUserWithWrongTotpSecret(){
         User user = User.getValidUser();
         user.setTotpSecret("XXXXXX");
         return user;

@@ -19,7 +19,7 @@ public class LoginTest extends AppManager {
 
     @BeforeMethod(alwaysRun = true)
     public void goToLoginPage() {
-        loginPage =  new HomePage(getDriver()).clickBtnLogin();
+        loginPage = new HomePage(getDriver()).clickBtnLogin();
     }
 
     @Test(groups = "smoke")
@@ -44,8 +44,8 @@ public class LoginTest extends AppManager {
     }
 
     @Test(enabled = false)
-    public void loginNegativeTest_WrongTopSecret(){
-        loginPage.login(User.getUserWithWrongTopSecret());
+    public void loginNegativeTest_WrongTotpSecret(){
+        loginPage.login(User.getUserWithWrongTotpSecret());
         Assert.assertTrue(loginPage.validateIncorrectTotpError(5));
     }
 }

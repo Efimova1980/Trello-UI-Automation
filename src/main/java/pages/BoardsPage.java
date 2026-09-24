@@ -15,7 +15,7 @@ import java.time.Duration;
 public class BoardsPage extends BasePage{
     public BoardsPage(WebDriver driver) {
         setDriver(driver);
-        PageFactory.initElements(new AjaxElementLocatorFactory(driver, 10), this);
+        PageFactory.initElements(new AjaxElementLocatorFactory(driver, ELEMENT_TIMEOUT_SECONDS), this);
     }
 
     @FindBy(xpath = "//button[@data-testid='create-board-tile']")
@@ -27,7 +27,7 @@ public class BoardsPage extends BasePage{
     @FindBy(xpath = "//button[@data-testid='create-board-submit-button']")
     WebElement btnCreateNewBoardSubmit;
     @FindBy(xpath = "//button[@data-testid='header-member-menu-button']")
-    WebElement btnAccaunt;
+    WebElement btnAccount;
     @FindBy(xpath = "//span[text()='Manage account']")
     WebElement btnManageAccountLink;
 
@@ -41,21 +41,26 @@ public class BoardsPage extends BasePage{
     }
 
     public void openMyAccount(){
-        clickWait(btnAccaunt, 20);
+        clickWait(btnAccount, 20);
         clickWait(btnManageAccountLink,10);
     }
 
     public boolean validateBoardNotPresent(String boardTitle, int time){
         return new WebDriverWait(driver, Duration.ofSeconds(time))
                 .until(ExpectedConditions
-                        .invisibilityOfElementLocated(By.xpath("//a[normalize-space(text())='" + boardTitle + "']")));
+                        .invisibilityOfElementLocated(boardTile(boardTitle)));
     }
 
     public void openBoard(String boardTitle){
         new WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions
-                        .elementToBeClickable(By.xpath("//a[normalize-space(text())='" + boardTitle + "']")))
+                        .elementToBeClickable(boardTile(boardTitle)))
                 .click();
+    }
+
+    // board tile link: the title is in a child element of <a>, not in <a> itself
+    private By boardTile(String boardTitle){
+        return By.xpath("//a[.//*[normalize-space(text())='" + boardTitle + "']]");
     }
 
 }

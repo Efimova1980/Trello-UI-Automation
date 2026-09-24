@@ -10,10 +10,10 @@ public class HomePage extends BasePage{
     public HomePage(WebDriver driver) {
         setDriver(driver);
         driver.get("https://trello.com/");
-        PageFactory.initElements(new AjaxElementLocatorFactory(driver, 10), this);
+        PageFactory.initElements(new AjaxElementLocatorFactory(driver, ELEMENT_TIMEOUT_SECONDS), this);
     }
 
-    @FindBy(xpath = "//a[@data-uuid='MJFtCCgVhXrVl7v9HA7EH_login']")
+    @FindBy(xpath = "//a[normalize-space()='Log in' and contains(@href,'id.atlassian.com/login')]")
     WebElement btnLogin;
 
     public LoginPage clickBtnLogin(){
