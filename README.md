@@ -1,45 +1,60 @@
-# QA_50_32_Trello_Project
+# Trello-UI-Automation
 
+[![Smoke tests](https://github.com/Efimova1980/Trello-UI-Automation/actions/workflows/smoke-tests.yml/badge.svg)](https://github.com/Efimova1980/Trello-UI-Automation/actions/workflows/smoke-tests.yml)
 
 https://github.com/user-attachments/assets/d25fea71-5fee-4b9c-a397-0787e1be90f4
 
-
-
-A demo UI test automation project for [Trello](https://trello.com), built with Java and Selenium WebDriver using the Page Object pattern.
+UI test automation project for [Trello](https://trello.com), built with Java, Selenium WebDriver and TestNG using the Page Object pattern. The test account is protected by two-factor authentication (2FA), and the tests log in with a generated TOTP code.
 
 ## Stack
 
 - **Java 21**
 - **Selenium WebDriver 4.47** — browser automation
-- **TestNG 7.11** — test runner, groups, assertions
+- **TestNG 7.11** — test runner, groups, dependencies, assertions
 - **Gradle** — build and test execution
 - **DataFaker** — test data generation
-- **com.atlassian:onetime** — TOTP code generation for two-factor authentication (2FA)
+- **com.atlassian:onetime** — TOTP code generation for 2FA
 - **Logback** — logging
 - **Lombok**
+- **GitHub Actions** — CI
+
+## What is tested
+
+| Test class | Scenarios |
+|---|---|
+| `LoginTest` | Positive login with email, password and TOTP code. Negative scenarios (wrong email / password / TOTP) are written but disabled because of login rate limits. |
+| `BoardTests` | Create a board → delete the same board. Delete depends on create and is skipped if creation fails. |
+| `ChangeProfilePhotoTests` | Change the profile photo (positive); upload a file with a wrong format (negative). |
 
 ## Project structure
 
 ```
 src/main/java/
   dto/       — data models (User, Board)
-  manager/   — AppManager: WebDriver setup/teardown, shared login logic
-  pages/     — Page Object classes (HomePage, LoginPage, BoardsPage, MyBoardPage, AtlassianProfilePage, BasePage)
-  utils/     — helper classes (screenshot capture on test failure, event listeners)
+  manager/   — AppManager: browser lifecycle, login, return to the start page
+  pages/     — Page Objects (BasePage, HomePage, LoginPage, BoardsPage, MyBoardPage, AtlassianProfilePage)
+  utils/     — TestNG listener (test logs + screenshot on failure), WebDriver listener (action logs)
 
 src/test/java/tests/
-  LoginTest.java              — positive and negative login scenarios (wrong password/email/TOTP secret)
-  BoardTests.java             — board creation and deletion
-  ChangeProfilePhotoTests.java — profile photo change (positive and negative scenario)
+  LoginTest, BoardTests, ChangeProfilePhotoTests
 
 src/test/resources/
-  smoketests.xml   — TestNG suite: tests tagged with the "smoke" group (one scenario per class)
-  logintests.xml   — TestNG suite: login tests only (the whole LoginTest class)
+  smoketests.xml   — Smoke suite: BoardTests → ChangeProfilePhotoTests ("smoke" group)
+  logintests.xml   — Login suite: LoginTest
+  logback.xml      — logging to console and to src/test/test_logs/
 ```
+
+## Design decisions
+
+- **One login per test class.** Atlassian rate-limits repeated logins: when there are too many, TOTP codes get rejected even if they are correct. So the browser is opened and the user logs in once per class (`@BeforeClass`), not before every test.
+- **Independent tests in one session.** Before each test, `openTrello()` closes extra tabs (for example, the Atlassian account tab) and opens the boards page, so every test starts from the same point.
+- **Stable locators.** Locators use `data-testid`, `name` or visible text instead of auto-generated IDs and CSS classes, which change between releases.
+- **Explicit waits instead of fixed pauses.** Tests wait for a condition (element present, clickable, URL, number of tabs) instead of `Thread.sleep`.
+- **Fresh TOTP window.** If less than 5 seconds are left in the current 30-second TOTP window, the test waits for the next one, so the code does not expire on the way to the server.
 
 ## Authentication and environment variables
 
-The test account is protected by two-factor authentication (2FA). Logging in requires three environment variables:
+Logging in requires three environment variables:
 
 | Variable | Purpose |
 |---|---|
@@ -47,34 +62,32 @@ The test account is protected by two-factor authentication (2FA). Logging in req
 | `TRELLO_PASSWORD` | Test account password |
 | `TRELLO_TOTP_SECRET` | Base32 secret used to generate the TOTP code |
 
-Locally these are set as environment/IDE run-configuration variables. In CI they're stored as GitHub Secrets (`Settings → Secrets and variables → Actions`) and passed into the workflow via the `env` block.
-
-⚠️ **Note:** every test that logs in performs a full sign-in, including entering a TOTP code. Trello/Atlassian rate-limits repeated login attempts from the same source — running many logins in a short time (e.g. a full test suite, or frequent repeated workflow runs) can cause the TOTP code to be rejected regardless of whether it's correct. Because of this, only one test is launched for demonstration purposes—a positive login test.
+Locally they are set as environment / IDE run-configuration variables. In CI they are stored as GitHub Secrets (`Settings → Secrets and variables → Actions`).
 
 ## Running tests
 
-### Locally
-
 ```
-./gradlew clean test          # full test suite
-./gradlew clean smoketests    # smoke tests only (one scenario per class)
-./gradlew clean logintests    # login tests only (one scenario)
+./gradlew clean smoketests    # Smoke suite: boards, then profile photo (2 logins)
+./gradlew clean logintests    # Login suite
 ```
 
 On Windows, use `.\gradlew` instead of `./gradlew`.
 
-### CI (GitHub Actions)
+⚠️ Running many suites in a row may trigger the login rate limit. Leave a pause between runs.
 
-The repository runs a single workflow, `.github/workflows/login-tests.yml`, which executes the `logintests` Gradle task (the `LoginTest` class only) on a `windows-latest` runner. It triggers on push to `master` or manually via `workflow_dispatch`.
+## CI (GitHub Actions)
 
-Before the build, the workflow forces a system clock sync (`Force Sync Clock`) — TOTP codes are sensitive to clock drift on the runner relative to real time.
+| Workflow | Runs | Trigger |
+|---|---|---|
+| `smoke-tests.yml` | `smoketests` | on push to `master`, or manually |
+| `login-tests.yml` | `logintests` | manually only (`workflow_dispatch`) |
 
-The `smoketests` Gradle task still exists in the project (`./gradlew clean smoketests`) and can be run locally, but it is not currently wired into a CI workflow.
+Both run on `windows-latest`. Before the tests, the system clock is synced (`Force Sync Clock`), because TOTP codes depend on accurate time.
 
 ## Reports and artifacts
 
 Each CI run uploads:
 - **test-report** — HTML test report (`build/reports/tests/...`)
-- **screenshots** — screenshots automatically captured on test failure (`build/screenshots/`)
+- **screenshots** — screenshots taken automatically on test failure (`build/screenshots/`)
 
-Both are available on the run's page under **Actions → [run] → Artifacts**.
+Both are available on the run page under **Actions → [run] → Artifacts**.
