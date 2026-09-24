@@ -6,8 +6,7 @@ env:
   TRELLO_TOTP_SECRET: ${{ secrets.TRELLO_TOTP_SECRET }}
 
 on:
-  push:
-    branches: ["master"]
+  workflow_dispatch:
 
 jobs:
   test:
